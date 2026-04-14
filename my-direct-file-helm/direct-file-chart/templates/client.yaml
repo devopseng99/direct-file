@@ -1,0 +1,68 @@
+{{- if .Values.client.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "direct-file.fullname" . }}-client
+  labels:
+    {{- include "direct-file.labels" . | nindent 4 }}
+    app.kubernetes.io/component: client
+spec:
+  replicas: {{ .Values.client.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "direct-file.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: client
+  template:
+    metadata:
+      labels:
+        {{- include "direct-file.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: client
+    spec:
+      containers:
+      - name: client
+        image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag }}"
+        imagePullPolicy: {{ .Values.client.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.client.port | default 3000 }}
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        {{- range $key, $value := .Values.client.env }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.client.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.client.port | default 3000 }}
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.client.port | default 3000 }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "direct-file.fullname" . }}-client
+  labels:
+    {{- include "direct-file.labels" . | nindent 4 }}
+    app.kubernetes.io/component: client
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "direct-file.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: client
+  ports:
+  - name: http
+    port: {{ .Values.client.service.port | default 3000 }}
+    targetPort: {{ .Values.client.port | default 3000 }}
+    protocol: TCP
+{{- end }}

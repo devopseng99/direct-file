@@ -63,6 +63,23 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+API labels
+*/}}
+{{- define "direct-file.api.labels" -}}
+{{ include "direct-file.labels" . }}
+app.kubernetes.io/component: api
+{{- end }}
+
+{{/*
+API selector labels
+*/}}
+{{- define "direct-file.api.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "direct-file.name" . }}-api
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: api
+{{- end }}
+
+{{/*
 PostgreSQL host
 */}}
 {{- define "direct-file.postgresql.host" -}}

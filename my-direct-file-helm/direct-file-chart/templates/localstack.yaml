@@ -1,0 +1,62 @@
+{{- if .Values.localstack.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "direct-file.fullname" . }}-localstack
+  labels:
+    {{- include "direct-file.labels" . | nindent 4 }}
+    app.kubernetes.io/component: localstack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "direct-file.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: localstack
+  template:
+    metadata:
+      labels:
+        {{- include "direct-file.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: localstack
+    spec:
+      containers:
+      - name: localstack
+        image: "{{ .Values.localstack.image.repository }}:{{ .Values.localstack.image.tag }}"
+        imagePullPolicy: {{ .Values.localstack.image.pullPolicy }}
+        ports:
+        - name: edge
+          containerPort: 4566
+          protocol: TCP
+        env:
+        - name: SERVICES
+          value: "s3,sqs,sns,kms"
+        - name: DEFAULT_REGION
+          value: "us-west-2"
+        - name: EAGER_SERVICE_LOADING
+          value: "1"
+        resources:
+          {{- toYaml .Values.localstack.resources | nindent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /_localstack/health
+            port: 4566
+          initialDelaySeconds: 10
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "direct-file.fullname" . }}-localstack
+  labels:
+    {{- include "direct-file.labels" . | nindent 4 }}
+    app.kubernetes.io/component: localstack
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "direct-file.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: localstack
+  ports:
+  - name: edge
+    port: 4566
+    targetPort: 4566
+    protocol: TCP
+{{- end }}

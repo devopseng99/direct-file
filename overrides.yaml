@@ -121,43 +121,105 @@ redis:
     loglevel warning
     maxmemory 200mb
     maxmemory-policy allkeys-lru
+    protected-mode no
     save ""
     appendonly no
 
 # ---------------------------------------------------------------------------
-# Direct File API (disabled - no pre-built images available yet)
+# Direct File API
 # ---------------------------------------------------------------------------
 api:
-  enabled: false
-  replicaCount: 1
+  enabled: true
+  replicas: 1
+
+  image:
+    repository: localhost/direct-file-api
+    tag: latest
+    pullPolicy: Never
+
+  port: 8080
+
+  # Logging - ALL set to WARN (INFO is OFF)
+  logLevel: WARN
+  springLogLevel: WARN
 
   env:
-    SPRING_PROFILES_ACTIVE: "production"
-    # Logging - ALL set to WARN or higher
-    LOG_LEVEL: "WARN"
-    LOGGING_LEVEL_ROOT: "WARN"
-    LOGGING_LEVEL_GOV_IRS: "WARN"
-    LOGGING_LEVEL_GOV_IRS_DIRECTFILE: "WARN"
-    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: "WARN"
-    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: "WARN"
-    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: "WARN"
-    LOGGING_LEVEL_ORG_HIBERNATE: "WARN"
-    LOGGING_LEVEL_ORG_HIBERNATE_SQL: "WARN"
-    LOGGING_LEVEL_COM_ZAXXER_HIKARI: "WARN"
-    LOGGING_LEVEL_IO_LETTUCE: "WARN"
-    LOGGING_LEVEL_IO_NETTY: "WARN"
+    SPRING_PROFILES_ACTIVE: development
+    LOCAL_WRAPPING_KEY: dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3Q=
+    DIRECT_FILE_LOADER_LOAD_AT_STARTUP: "false"
+    DIRECT_FILE_AWS_SNS_SUBMISSION_CONFIRMATION_PUBLISH_ENABLED: "false"
+    DIRECT_FILE_AWS_SNS_ENDPOINT: "http://direct-file-localstack:4566"
+    DIRECT_FILE_AWS_MESSAGEQUEUE_ENDPOINT: "http://direct-file-localstack:4566"
+    DIRECT_FILE_AWS_S3_ENDPOINT: "http://direct-file-localstack:4566"
+    DIRECT_FILE_AWS_ELASTICACHE_ENDPOINT: "http://direct-file-localstack:4566"
+    DIRECT_FILE_AWS_SES_ENDPOINT: "http://direct-file-localstack:4566"
+    DIRECT_FILE_AWS_KMSENDPOINT: "http://direct-file-localstack:4566"
+    AWS_ACCESS_KEY_ID: test
+    AWS_SECRET_ACCESS_KEY: test
+    AWS_DEFAULT_REGION: us-west-2
+    LOG_LEVEL: WARN
+    LOGGING_LEVEL_ROOT: WARN
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: WARN
+    LOGGING_LEVEL_GOV_IRS: WARN
+    LOGGING_LEVEL_ORG_HIBERNATE: WARN
+    LOGGING_LEVEL_ORG_APACHE: WARN
+    LOGGING_LEVEL_COM_ZAXXER: WARN
+
+  resources:
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+
+  service:
+    type: ClusterIP
+    port: 8080
 
 # ---------------------------------------------------------------------------
-# Direct File Client (disabled - no pre-built images available yet)
+# Direct File Client
 # ---------------------------------------------------------------------------
 client:
-  enabled: false
+  enabled: true
   replicaCount: 1
+  port: 3000
+
+  image:
+    repository: localhost/direct-file-client
+    tag: latest
+    pullPolicy: Never
+
+  service:
+    port: 3000
 
   env:
-    NODE_ENV: "production"
-    # Logging - set to warn
     LOG_LEVEL: "warn"
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+
+# ---------------------------------------------------------------------------
+# LocalStack (mock AWS services: S3, SQS, SNS, KMS)
+# ---------------------------------------------------------------------------
+localstack:
+  enabled: true
+  image:
+    repository: docker.io/localstack/localstack
+    tag: "3.0"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
 
 # ---------------------------------------------------------------------------
 # Ingress (disabled - using Cloudflare tunnel)
