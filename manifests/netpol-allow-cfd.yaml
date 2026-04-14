@@ -1,0 +1,62 @@
+# Network Policy: Allow Cloudflare Tunnel Ingress
+# This policy allows traffic from the Cloudflare tunnel namespace (cfd)
+# to reach the direct-file application services
+#
+# Note: API and Client services are disabled in current deployment
+# This policy is pre-configured for when they are enabled
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cfd-to-direct-file
+  namespace: direct-file
+  labels:
+    app.kubernetes.io/instance: direct-file
+    app.kubernetes.io/name: direct-file
+    app.kubernetes.io/part-of: direct-file
+spec:
+  # Apply to API pods when enabled
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: direct-file
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cfd
+      ports:
+        # Direct File API port
+        - port: 8080
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cfd-to-direct-file-client
+  namespace: direct-file
+  labels:
+    app.kubernetes.io/instance: direct-file
+    app.kubernetes.io/name: direct-file
+    app.kubernetes.io/part-of: direct-file
+spec:
+  # Apply to Client pods when enabled
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: direct-file
+      app.kubernetes.io/component: client
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cfd
+      ports:
+        # Direct File Client port (Nginx serving React app)
+        - port: 80
+          protocol: TCP
+        - port: 3000
+          protocol: TCP

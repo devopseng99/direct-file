@@ -1,0 +1,160 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: direct-file
+spec:
+  serviceName: {{ .Release.Name }}-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-postgresql
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-postgresql
+        app.kubernetes.io/name: postgresql
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: database
+    spec:
+      {{- if .Values.postgresql.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.postgresql.nodeSelector | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+        imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+        env:
+        - name: POSTGRES_USER
+          value: {{ .Values.postgresql.auth.postgresUser }}
+        {{- if .Values.postgresql.auth.existingSecret }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.auth.existingSecret }}
+              key: {{ .Values.postgresql.auth.secretKeys.adminPasswordKey | default "postgres-password" }}
+        {{- end }}
+        - name: POSTGRES_DB
+          value: {{ .Values.postgresql.auth.database | default "directfile" }}
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        # PostgreSQL logging configuration - all set to WARNING or higher
+        {{- if .Values.postgresql.postgresqlConfiguration }}
+        - name: POSTGRES_INITDB_ARGS
+          value: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+        {{- end }}
+        ports:
+        - name: postgresql
+          containerPort: 5432
+          protocol: TCP
+        {{- if .Values.postgresql.resources }}
+        resources:
+{{ toYaml .Values.postgresql.resources | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        {{- if .Values.postgresql.postgresqlConfiguration }}
+        - name: postgresql-config
+          mountPath: /etc/postgresql/conf.d
+        {{- end }}
+        livenessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - pg_isready -U {{ .Values.postgresql.auth.postgresUser }} -d {{ .Values.postgresql.auth.database }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - pg_isready -U {{ .Values.postgresql.auth.postgresUser }} -d {{ .Values.postgresql.auth.database }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+      volumes:
+      {{- if .Values.postgresql.postgresqlConfiguration }}
+      - name: postgresql-config
+        configMap:
+          name: {{ .Release.Name }}-postgresql-config
+      {{- end }}
+      {{- if .Values.postgresql.persistence.existingClaim }}
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ .Values.postgresql.persistence.existingClaim }}
+      {{- else if .Values.postgresql.localPV.enabled }}
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ .Values.postgresql.localPV.claimName }}
+      {{- end }}
+  {{- if not (or .Values.postgresql.persistence.existingClaim .Values.postgresql.localPV.enabled) }}
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - {{ .Values.postgresql.persistence.accessMode }}
+      {{- if .Values.postgresql.persistence.storageClass }}
+      storageClassName: {{ .Values.postgresql.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.postgresql.persistence.size }}
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-postgresql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-postgresql
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ .Release.Name }}-postgresql
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+---
+{{- if .Values.postgresql.postgresqlConfiguration }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-postgresql-config
+  namespace: {{ .Release.Namespace }}
+data:
+  custom.conf: |
+    # PostgreSQL logging configuration - set to WARNING or higher
+    log_min_messages = {{ .Values.postgresql.postgresqlConfiguration.log_min_messages | default "WARNING" }}
+    log_min_error_statement = {{ .Values.postgresql.postgresqlConfiguration.log_min_error_statement | default "WARNING" }}
+    log_statement = '{{ .Values.postgresql.postgresqlConfiguration.log_statement | default "none" }}'
+    log_duration = {{ .Values.postgresql.postgresqlConfiguration.log_duration | default "off" }}
+    log_connections = {{ .Values.postgresql.postgresqlConfiguration.log_connections | default "off" }}
+    log_disconnections = {{ .Values.postgresql.postgresqlConfiguration.log_disconnections | default "off" }}
+    log_checkpoints = {{ .Values.postgresql.postgresqlConfiguration.log_checkpoints | default "off" }}
+    log_lock_waits = {{ .Values.postgresql.postgresqlConfiguration.log_lock_waits | default "off" }}
+    client_min_messages = {{ .Values.postgresql.postgresqlConfiguration.client_min_messages | default "WARNING" }}
+{{- end }}
+{{- end }}

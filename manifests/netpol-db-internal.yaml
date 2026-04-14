@@ -1,0 +1,66 @@
+# Network Policy: Database Internal Only
+# Restrict PostgreSQL and Redis ingress to only application pods within the namespace
+# Prevents direct external access to databases
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: direct-file-postgresql-internal-only
+  namespace: direct-file
+  labels:
+    app.kubernetes.io/instance: direct-file
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/part-of: direct-file
+spec:
+  podSelector:
+    matchLabels:
+      app: direct-file-postgresql
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from API pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: api
+      ports:
+        - port: 5432
+          protocol: TCP
+    # Allow from within the namespace for administrative access
+    # (e.g., kubectl exec, migration jobs)
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 5432
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: direct-file-redis-internal-only
+  namespace: direct-file
+  labels:
+    app.kubernetes.io/instance: direct-file
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: direct-file
+spec:
+  podSelector:
+    matchLabels:
+      app: direct-file-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from API pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: api
+      ports:
+        - port: 6379
+          protocol: TCP
+    # Allow from within the namespace for administrative access
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 6379
+          protocol: TCP

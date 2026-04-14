@@ -1,0 +1,3 @@
+dt=`date +"%Y%m%d-%H%M%S"`; d2=`date +"%Y%m%d-%T"`
+helm upgrade --install direct-file ./my-direct-file-helm/direct-file-chart --namespace=direct-file --create-namespace -f overrides.yaml --dry-run --debug > .run0debug-log-${dt}
+helm upgrade --install direct-file ./my-direct-file-helm/direct-file-chart --namespace=direct-file --create-namespace -f overrides.yaml > .run0apply-log-${dt}

@@ -1,0 +1,30 @@
+{{- if .Values.redis.localPV.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.redis.localPV.pvName }}
+  labels:
+    tier: direct-file
+    component: redis-pv
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+spec:
+  capacity:
+    storage: {{ .Values.redis.localPV.size }}
+  accessModes:
+    - {{ .Values.redis.localPV.accessMode }}
+  persistentVolumeReclaimPolicy: {{ .Values.redis.localPV.reclaimPolicy }}
+  storageClassName: {{ .Values.redis.localPV.storageClass }}
+  volumeMode: Filesystem
+  local:
+    path: {{ .Values.redis.localPV.localPath }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - {{ .Values.redis.localPV.nodeHostname }}
+{{- end }}

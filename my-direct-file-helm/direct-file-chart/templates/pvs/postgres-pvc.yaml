@@ -1,0 +1,22 @@
+{{- if .Values.postgresql.localPV.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.postgresql.localPV.claimName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    tier: direct-file
+    component: postgresql-pvc
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+spec:
+  accessModes:
+    - {{ .Values.postgresql.localPV.accessMode }}
+  storageClassName: {{ .Values.postgresql.localPV.storageClass }}
+  volumeMode: Filesystem
+  volumeName: {{ .Values.postgresql.localPV.pvName }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.localPV.size }}
+{{- end }}

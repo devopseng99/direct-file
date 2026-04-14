@@ -1,0 +1,22 @@
+{{- if .Values.redis.localPV.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.redis.localPV.claimName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    tier: direct-file
+    component: redis-pvc
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+spec:
+  accessModes:
+    - {{ .Values.redis.localPV.accessMode }}
+  storageClassName: {{ .Values.redis.localPV.storageClass }}
+  volumeMode: Filesystem
+  volumeName: {{ .Values.redis.localPV.pvName }}
+  resources:
+    requests:
+      storage: {{ .Values.redis.localPV.size }}
+{{- end }}

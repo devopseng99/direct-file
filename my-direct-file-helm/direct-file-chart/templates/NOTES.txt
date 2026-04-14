@@ -1,0 +1,35 @@
+============================================================
+  Direct File Deployment Summary
+============================================================
+
+Namespace: {{ .Release.Namespace }}
+
+Services deployed:
+{{- if .Values.postgresql.enabled }}
+  - PostgreSQL: {{ .Release.Name }}-postgresql:5432
+{{- end }}
+{{- if .Values.redis.enabled }}
+  - Redis:      {{ .Release.Name }}-redis:6379
+{{- end }}
+
+Check pod status:
+  kubectl get pods -n {{ .Release.Namespace }}
+
+Check services:
+  kubectl get svc -n {{ .Release.Namespace }}
+
+Check PVCs:
+  kubectl get pvc -n {{ .Release.Namespace }}
+
+View logs:
+  kubectl logs -f deployment/{{ .Release.Name }}-postgresql -n {{ .Release.Namespace }}
+  kubectl logs -f statefulset/{{ .Release.Name }}-redis -n {{ .Release.Namespace }}
+
+Access PostgreSQL (from cluster):
+  kubectl exec -it {{ .Release.Name }}-postgresql-0 -n {{ .Release.Namespace }} -- psql -U postgres -d directfile
+
+Access Redis (from cluster):
+  kubectl exec -it {{ .Release.Name }}-redis-0 -n {{ .Release.Namespace }} -- redis-cli
+
+NOTE: External access is via Cloudflare Tunnel. Ingress is disabled.
+============================================================

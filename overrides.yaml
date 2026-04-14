@@ -1,0 +1,187 @@
+# Direct File Production Overrides
+# =============================================================================
+# Secrets are managed via scripts/setup-secrets.sh
+# Do NOT put passwords in this file
+#
+# Cloudflare tunnel configuration pending
+#   -> direct-file-postgresql.direct-file.svc.cluster.local:5432
+#   -> direct-file-redis.direct-file.svc.cluster.local:6379
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# PostgreSQL Configuration
+# ---------------------------------------------------------------------------
+postgresql:
+  enabled: true
+
+  image:
+    repository: postgres
+    tag: "15"
+    pullPolicy: IfNotPresent
+
+  auth:
+    postgresUser: postgres
+    database: directfile
+    existingSecret: direct-file-postgres-secret
+    secretKeys:
+      adminPasswordKey: postgres-password
+
+  resources:
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+
+  persistence:
+    enabled: true
+    storageClass: my-local-storage
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    existingClaim: psql-direct-file-claim0
+
+  # Pin to mgplcb05 worker node
+  nodeSelector:
+    kubernetes.io/hostname: mgplcb05
+
+  # Local PV configuration
+  localPV:
+    enabled: true
+    pvName: psql-direct-file-claim0
+    claimName: psql-direct-file-claim0
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    reclaimPolicy: Retain
+    storageClass: my-local-storage
+    localPath: /opt/k8s-pers/vol1/psql-direct-file
+    nodeHostname: mgplcb05
+
+  # PostgreSQL logging - ALL set to WARNING or higher (INFO is OFF)
+  postgresqlConfiguration:
+    log_min_messages: WARNING
+    log_min_error_statement: WARNING
+    log_statement: none
+    log_duration: off
+    log_connections: off
+    log_disconnections: off
+    log_checkpoints: off
+    log_lock_waits: off
+    client_min_messages: WARNING
+
+# ---------------------------------------------------------------------------
+# Redis Configuration
+# ---------------------------------------------------------------------------
+redis:
+  enabled: true
+
+  image:
+    repository: redis
+    tag: "7.0"
+    pullPolicy: IfNotPresent
+
+  auth:
+    enabled: true
+    existingSecret: direct-file-redis-secret
+    existingSecretPasswordKey: redis-password
+
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+
+  persistence:
+    enabled: true
+    storageClass: my-local-storage
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    existingClaim: redis-direct-file-claim0
+
+  # Pin to mgplcb05 worker node
+  nodeSelector:
+    kubernetes.io/hostname: mgplcb05
+
+  # Local PV configuration
+  localPV:
+    enabled: true
+    pvName: redis-direct-file-claim0
+    claimName: redis-direct-file-claim0
+    size: 2Gi
+    accessMode: ReadWriteOnce
+    reclaimPolicy: Retain
+    storageClass: my-local-storage
+    localPath: /opt/k8s-pers/vol1/redis-direct-file
+    nodeHostname: mgplcb05
+
+  # Redis logging - loglevel warning (INFO is OFF)
+  configuration: |
+    loglevel warning
+    maxmemory 200mb
+    maxmemory-policy allkeys-lru
+    save ""
+    appendonly no
+
+# ---------------------------------------------------------------------------
+# Direct File API (disabled - no pre-built images available yet)
+# ---------------------------------------------------------------------------
+api:
+  enabled: false
+  replicaCount: 1
+
+  env:
+    SPRING_PROFILES_ACTIVE: "production"
+    # Logging - ALL set to WARN or higher
+    LOG_LEVEL: "WARN"
+    LOGGING_LEVEL_ROOT: "WARN"
+    LOGGING_LEVEL_GOV_IRS: "WARN"
+    LOGGING_LEVEL_GOV_IRS_DIRECTFILE: "WARN"
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: "WARN"
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: "WARN"
+    LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: "WARN"
+    LOGGING_LEVEL_ORG_HIBERNATE: "WARN"
+    LOGGING_LEVEL_ORG_HIBERNATE_SQL: "WARN"
+    LOGGING_LEVEL_COM_ZAXXER_HIKARI: "WARN"
+    LOGGING_LEVEL_IO_LETTUCE: "WARN"
+    LOGGING_LEVEL_IO_NETTY: "WARN"
+
+# ---------------------------------------------------------------------------
+# Direct File Client (disabled - no pre-built images available yet)
+# ---------------------------------------------------------------------------
+client:
+  enabled: false
+  replicaCount: 1
+
+  env:
+    NODE_ENV: "production"
+    # Logging - set to warn
+    LOG_LEVEL: "warn"
+
+# ---------------------------------------------------------------------------
+# Ingress (disabled - using Cloudflare tunnel)
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Autoscaling (disabled - resource constrained environment)
+# ---------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Network Policy (created separately via manifests/)
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# Service Account
+# ---------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""

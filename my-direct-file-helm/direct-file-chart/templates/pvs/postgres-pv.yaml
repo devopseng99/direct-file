@@ -1,0 +1,30 @@
+{{- if .Values.postgresql.localPV.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.postgresql.localPV.pvName }}
+  labels:
+    tier: direct-file
+    component: postgresql-pv
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+spec:
+  capacity:
+    storage: {{ .Values.postgresql.localPV.size }}
+  accessModes:
+    - {{ .Values.postgresql.localPV.accessMode }}
+  persistentVolumeReclaimPolicy: {{ .Values.postgresql.localPV.reclaimPolicy }}
+  storageClassName: {{ .Values.postgresql.localPV.storageClass }}
+  volumeMode: Filesystem
+  local:
+    path: {{ .Values.postgresql.localPV.localPath }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - {{ .Values.postgresql.localPV.nodeHostname }}
+{{- end }}

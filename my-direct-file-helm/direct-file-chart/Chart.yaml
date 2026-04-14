@@ -1,0 +1,16 @@
+apiVersion: v2
+name: direct-file
+description: IRS Direct File - Tax filing application (simplified K8s deployment)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - direct-file
+  - irs
+  - tax
+  - filing
+home: https://github.com/IRS-Public/direct-file
+sources:
+  - https://github.com/devopseng99/my-direct-file
+maintainers:
+  - name: DevOps Team

@@ -1,0 +1,29 @@
+# Cloned upstream source (separate repo)
+my-direct-file/
+
+# Intake session files
+.intake-*
+
+# Helm debug and apply logs
+.run0debug-log-*
+.run0apply-log-*
+
+# Logs and archives
+*.log
+*.jsonl
+*.tar.gz
+
+# Secrets (never commit)
+secrets/
+*.secret
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
